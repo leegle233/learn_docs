@@ -1,6 +1,5 @@
 # 如何配置一个 Electron + VueJS 项目
 
-
 ## 前言
 Electron 就是个单独的外壳，可以无痛套在原有的 Vue 项目之外。用 Electron 开发，其实本质是在：
 用一个包装成 App 的 Chrome 浏览器（其实就是 Electron），去访问一个部署在本地的、已经编译好的 Vue 项目。
@@ -25,44 +24,40 @@ npm install concurrently --save-dev
 
 ## 关键文件的创建
 
-
 创建 Electron 入口文件 ./src/electron_main.ts：
 ```typescript
 import { app, BrowserWindow } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url';
+import { parseArgs } from 'node:util'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const createWindow = () => {
+// const parseArg
+
+const createWindow = async () => {
     const win = new BrowserWindow({
         width: 800,
         height: 600
     })
-
-    console.log(process.env.NODE_ENV)
-    console.log(__filename, __dirname)
-
-    const indexFile = join(dirname(__dirname), 'dist', 'index.html')
-    console.log("Index", indexFile)
-    win.loadFile(indexFile)
-    // win.loadURL('http://localhost:5173')
-
+    
     // 开发模式下加载 Vite 开发服务器
+    // NODE_ENV 参数已于 package.json 的启动脚本中设置
     if (process.env.NODE_ENV === 'development') {
-
-        win.webContents.openDevTools()
+        await win.loadURL('http://localhost:5173')
     } else {
-        // 生产模式下加载打包后的文件
-
+        await win.loadFile(
+            join(dirname(__dirname), 'dist', 'index.html')
+        )
+        // win.webContents.openDevTools()
     }
-    // win.loadURL("http://localhost:5173")
 }
 
 app.whenReady().then(() => {
     createWindow()
 })
+
 ```
 
 创建 electron-builder.json 文件，该文件储存的 Electron 在 build 时需要访问的配置，
@@ -89,13 +84,13 @@ app.whenReady().then(() => {
   "main": "./src/electron_main.ts",
   "scripts": {
     "package": "electron-builder",
-    "dev": "concurrently -k \"vite\" \"electron .\"",
+    "dev": "concurrently -k \"vite\" \"NODE_ENV=development electron .\"",
     "build": "vue-tsc && vite build"
   }
 }
 ```
 
-设置 vite.config.ts 中的 baseURL 如下：
+设置 vite.config.ts 中的 base 如下：
 
 ```javascript
 export default defineConfig({
