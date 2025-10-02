@@ -38,6 +38,9 @@ const __dirname = dirname(__filename);
 
 const createWindow = async () => {
     const win = new BrowserWindow({
+        webPreferences: {
+            preload: join(__dirname, 'electron_preload.ts')
+        },
         width: 800,
         height: 600
     })
@@ -56,8 +59,30 @@ const createWindow = async () => {
 
 app.whenReady().then(() => {
     createWindow()
+    
+    // 将特定方法暴露给渲染进程
+    // ipcMain.on('set-title', handleSetTitle)
 })
 
+// 在此添加你需要暴露给 ipcRender 的函数
+/*
+const handleSetTitle = (evt: any, title: any) => {
+    const webContents = evt.sender
+    const win = BrowserWindow.fromWebContents(webContents)
+    if (win) win.setTitle(title)
+}
+ */
+
+```
+
+创建 electron-preload.ts 文件，这涉及到将系统层的函数有选择性地暴露给渲染进程：
+```typescript
+const { contextBridge, ipcRenderer } = require('electron/renderer')
+
+contextBridge.exposeInMainWorld('electronAPI', {
+    // openFile: () => ipcRenderer.invoke('dialog:openFile'),
+    // setTitle: (title) => ipcRenderer.send('set-title', title)
+})
 ```
 
 创建 electron-builder.json 文件，该文件储存的 Electron 在 build 时需要访问的配置，
